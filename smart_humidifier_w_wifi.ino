@@ -261,7 +261,7 @@ if(h1>65 || isnan(h1) || (h1) == 0){
   delay(5000);
 }
 
-//Turn the bottom off humidifier if the humidity is above 65% or the sensor fails
+//Turn the bottom humidifier off if the humidity is above 65% or the sensor fails
 //Else turn the humidifier on
 if(h2>65 || isnan(h2) || (h2) == 0){
   digitalWrite(humi2,HIGH);
