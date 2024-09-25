@@ -8,6 +8,7 @@
 #include <ESPAsyncWebServer.h>
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
+//#include <rExcel.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
 #include <Wire.h>
@@ -248,26 +249,30 @@ void loop(){
 
     }
 
-//Turn the top humidifier off if the humidity is above 65% or the sensor fails
+//Turn the top humidifier and fans off if the humidity is above 65% or the sensor fails
 //Else turn the humidifier on
-if(h1>65 || isnan(h1) || (h1) == 0){
+if(h1>64 || isnan(h1) || (h1) == 0){
   digitalWrite(humi1,HIGH);
+  digitalWrite(fan1,HIGH);
   Serial.println("TOP humidity is g2g!");
   delay(5000);
 }else{
   digitalWrite(humi1,LOW);
+  digitalWrite(fan1,LOW);
   Serial.println("TOP humidity low, beware the mist!");
   delay(5000);
 }
 
-//Turn the bottom humidifier off if the humidity is above 65% or the sensor fails
+//Turn the bottom humidifier and fans off if the humidity is above 65% or the sensor fails
 //Else turn the humidifier on
-if(h2>65 || isnan(h2) || (h2) == 0){
+if(h2>64 || isnan(h2) || (h2) == 0){
   digitalWrite(humi2,HIGH);
+  digitalWrite(fan2,HIGH);
   Serial.println("BOTTOM humidity is g2g!");
   delay(5000);
 }else{
   digitalWrite(humi2,LOW);
+  digitalWrite(fan2,LOW);
   Serial.println("BOTTOM humidity low, beware the mist!");
   delay(5000);
 }
