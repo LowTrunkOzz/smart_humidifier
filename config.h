@@ -7,8 +7,8 @@ Add all of your definitions and declarations here.
 
 
 const char* host = "iot-web";
-const char* ssid     = "YOUR_WIFI";
-const char* password = "YOUR_WIFI_PASSWORD!";
+const char* ssid     = "TellMyWiFiLoveHer_EXT";
+const char* password = "hahasucka!";
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
@@ -21,7 +21,8 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 #define humi1 12       //D6 This is top humidifier
 #define humi2 13       //D7 This is bottom humidifier
 #define button 15      //D8 Button for humi controller 
-
+#define fan1 9         //SD2 Pin for Top section
+#define fan2 10        //SD3  Pin for Bottom section
 
 // Uncomment the type of sensor in use:
 #define DHTTYPE    DHT11     // DHT 11
