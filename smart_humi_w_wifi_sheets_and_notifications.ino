@@ -84,7 +84,12 @@ const char index_html[] PROGMEM = R"rawliteral(
     .dht-labels{
       font-size: 1rem;
       vertical-align:middle;
-      padding-bottom: 15px;
+      padding-bottom: 10px;
+    }
+    .door-labels{
+      font-size: 1.5rem;
+      vertical-align:middle;
+      padding-bottom: 10px;
     }
 	.switch {position: relative; display: inline-block; width: 60px; height: 34px} 
     .switch input {display: none}
@@ -117,14 +122,14 @@ const char index_html[] PROGMEM = R"rawliteral(
     <sup class="units">&deg;F</sup>
   </p>
     <p>
-    <i class="fas fa-tint" style="color:#00add6;"></i> 
+    <i class="fa-solid fa-door-open" style="color:#00add6;"></i> 
     <span class="dht-labels">Humidity</span>
     <span id="humidity2">%HUMIDITY2%</span>
     <sup class="units">&#37</sup>
   </p>
   <p>
   <i style="color:#059e8a;"></i>
-  <span class="dht-labels">The door is</span>
+  <span class="door-labels">The door is</span>
   <span id="doorState">%DOORSTATE%</span>
   </p>
     <h2>Fan Relays</h2>
