@@ -55,8 +55,7 @@ const long TELEinterval = 500;  // Detect changes that are 500 milliseconds apar
 
 // Initialize Telegram BOT
 #define BOTtoken " "  // your Bot Token (Get from Botfather)
-// Use @myidbot to find out the chat ID of an individual or a group
-#define CHAT_ID " "
+#define CHAT_ID " "   // Use @myidbot to find out the chat ID of an individual or a group
 
 X509List cert(TELEGRAM_CERTIFICATE_ROOT);
 UniversalTelegramBot bot(BOTtoken, client);
@@ -123,7 +122,12 @@ const char index_html[] PROGMEM = R"rawliteral(
     <span id="humidity2">%HUMIDITY2%</span>
     <sup class="units">&#37</sup>
   </p>
-    <h2>Fan Relays</h2>
+    <p>
+  <i style="color:#059e8a;"></i>
+  <span class="dht-labels">The door is</span>
+  <span id="doorState">%DOORSTATE%</span>
+  </p>  
+  <h2>Fan Relays</h2>
   %BUTTONPLACEHOLDER%
 <script>function toggleCheckbox(element) {
   var xhr = new XMLHttpRequest();
