@@ -54,8 +54,8 @@ long updateInterval = 900000;   //Updates Google Sheets every 15 mins
 const long TELEinterval = 500;  // Detect changes that are 500 milliseconds apart for Telegram
 
 // Initialize Telegram BOT
-#define BOTtoken " "  // your Bot Token (Get from Botfather)
-#define CHAT_ID " "   // Use @myidbot to find out the chat ID of an individual or a group
+#define BOTtoken ""  // your Bot Token (Get from Botfather)
+#define CHAT_ID ""   // Use @myidbot to find out the chat ID of an individual or a group
 
 X509List cert(TELEGRAM_CERTIFICATE_ROOT);
 UniversalTelegramBot bot(BOTtoken, client);
@@ -122,12 +122,12 @@ const char index_html[] PROGMEM = R"rawliteral(
     <span id="humidity2">%HUMIDITY2%</span>
     <sup class="units">&#37</sup>
   </p>
-    <p>
+  <p>
   <i style="color:#059e8a;"></i>
   <span class="dht-labels">The door is</span>
   <span id="doorState">%DOORSTATE%</span>
-  </p>  
-  <h2>Fan Relays</h2>
+  </p>
+    <h2>Fan Relays</h2>
   %BUTTONPLACEHOLDER%
 <script>function toggleCheckbox(element) {
   var xhr = new XMLHttpRequest();
@@ -179,6 +179,17 @@ setInterval(function ( ) {
   xhttp.open("GET", "/humidity2", true);
   xhttp.send();
 }, 4000 ) ;
+
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("doorState").innerHTML = this.responseText;
+    }
+  };
+  xhttp.open("GET", "/doorState", true);
+  xhttp.send();
+}, 4000 ) ;
 </script>
 </html>)rawliteral";
 
@@ -218,6 +229,8 @@ String processor(const String &var) {
     return String(t2);
   } else if (var == "HUMIDITY2") {
     return String(h2);
+  } else if (var == "DOORSTATE") {
+    return String(doorState);
   }
 
   return String();
@@ -240,7 +253,7 @@ void setup() {
       ;
   }
 
-  //Turn off relay outputs in case there's an issue before readings start:
+  //Turn off relay outputs while waiting for WiFi in case there's an issue before readings start:
   mcp.digitalWrite(humi1, HIGH);
   mcp.digitalWrite(fan1, HIGH);
   mcp.digitalWrite(humi2, HIGH);
@@ -319,6 +332,9 @@ void setup() {
   });
   server.on("/humidity2", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send_P(200, "text/plain", String(h2).c_str());
+  });
+  server.on("/doorState", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send_P(200, "text/plain", String(doorState).c_str());
   });
 
   // Send a GET request to <ESP_IP>/update?relay=<inputMessage>&state=<inputMessage2>
