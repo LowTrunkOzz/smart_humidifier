@@ -122,15 +122,15 @@ const char index_html[] PROGMEM = R"rawliteral(
     <sup class="units">&deg;F</sup>
   </p>
     <p>
-    <i class="fa-solid fa-door-open" style="color:#00add6;"></i> 
+    <i class="fas fa-tint" style="color:#00add6;"></i> 
     <span class="dht-labels">Humidity</span>
     <span id="humidity2">%HUMIDITY2%</span>
     <sup class="units">&#37</sup>
   </p>
-  <p>
-  <i style="color:#059e8a;"></i>
-  <span class="door-labels">The door is</span>
-  <span id="doorState">%DOORSTATE%</span>
+   <p>
+   <i class="fa-solid fa-door-open"></i>
+   <span class="door-labels">The door is</span>
+   <span id="doorState">%DOORSTATE%</span>
   </p>
     <h2>Fan Relays</h2>
   %BUTTONPLACEHOLDER%
@@ -474,7 +474,7 @@ void loop() {
     display.setCursor(0, 35);
     display.print("Damn Door!");
   } else {
-    
+
     // display top humidity
     display.setTextSize(1);
     display.setCursor(0, 0);
