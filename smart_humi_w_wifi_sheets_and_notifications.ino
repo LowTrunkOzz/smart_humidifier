@@ -62,7 +62,7 @@ UniversalTelegramBot bot(BOTtoken, client);
 
 // Runs whenever the reedswitch changes state
 ICACHE_RAM_ATTR void changeDoorStatus() {
-  //debugln("State changed");
+  debugln("State changed");
   changeState = true;
 }
 
