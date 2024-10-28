@@ -128,7 +128,6 @@ const char index_html[] PROGMEM = R"rawliteral(
     <sup class="units">&#37</sup>
   </p>
    <p>
-   <i class="fa-solid fa-door-open"></i>
    <span class="door-labels">The door is</span>
    <span id="doorState">%DOORSTATE%</span>
   </p>
