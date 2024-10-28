@@ -54,9 +54,9 @@ long updateInterval = 900000;   //Updates Google Sheets every 15 mins
 const long TELEinterval = 500;  // Detect changes that are 500 milliseconds apart for Telegram
 
 // Initialize Telegram BOT
-#define BOTtoken "8174997684:AAGxGfi1qrDue4OVDlsLcFCGoECyspRkjb8"  // your Bot Token (Get from Botfather)
+#define BOTtoken " "  // your Bot Token (Get from Botfather)
 // Use @myidbot to find out the chat ID of an individual or a group
-#define CHAT_ID "8062087937"
+#define CHAT_ID " "
 
 X509List cert(TELEGRAM_CERTIFICATE_ROOT);
 UniversalTelegramBot bot(BOTtoken, client);
