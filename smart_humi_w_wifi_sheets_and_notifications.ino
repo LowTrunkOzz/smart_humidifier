@@ -1,8 +1,3 @@
-/*
-
-Almost all of this hacked and slashed together from various sources across the web, but mostly Random Nerd Tutorials. You can easily find his phenomenal tutorials with a Google search, and make sure to buy him a coffee!
-
-*/
 
 // Import required libraries
 
@@ -22,9 +17,6 @@ Almost all of this hacked and slashed together from various sources across the w
 
 #include <UniversalTelegramBot.h>
 #include <ArduinoJson.h>
-
-//Turn off serial.println, 0 = Off, 1 = On
-#define DEBUG 0
 
 DHT dht1(DHTPIN1, DHTTYPE);
 DHT dht2(DHTPIN2, DHTTYPE);
@@ -59,11 +51,12 @@ unsigned long previousTELEMillis = 0;    // will store the last time Telegram wa
 
 const long interval = 4000;     // Updates DHT readings every 4000 milliseconds
 long updateInterval = 900000;   //Updates Google Sheets every 15 mins
-const long TELEinterval = 5000; // Detect changes that are 5000 milliseconds apart for Telegram
+const long TELEinterval = 500;  // Detect changes that are 500 milliseconds apart for Telegram
 
 // Initialize Telegram BOT
-#define BOTtoken " "  // your Bot Token (Get from Botfather)
-#define CHAT_ID " "   // Use @myidbot to find out the chat ID of an individual or a group
+#define BOTtoken "8174997684:AAGxGfi1qrDue4OVDlsLcFCGoECyspRkjb8"  // your Bot Token (Get from Botfather)
+// Use @myidbot to find out the chat ID of an individual or a group
+#define CHAT_ID "8062087937"
 
 X509List cert(TELEGRAM_CERTIFICATE_ROOT);
 UniversalTelegramBot bot(BOTtoken, client);
@@ -419,12 +412,12 @@ void loop() {
 
 
 
-  //Turn the top humidifier and fans off if the humidity is above 65% or the sensor fails
+  //Turn the top humidifier and fans off if the humidity is above 65%, the sensor fails, or the door is open
   //Else turn the humidifier on
-  if (h1 > 64 || isnan(h1) || (h1) == 0) {
+  if (h1 > 64 || isnan(h1) || (h1) == 0 || doorState == "open") {
     mcp.digitalWrite(humi1, HIGH);
     mcp.digitalWrite(fan1, HIGH);
-    debugln("TOP humidity is g2g!");
+    debugln("TOP humidity is g2g or the door is open!");
     delay(2000);
   } else {
     mcp.digitalWrite(humi1, LOW);
@@ -433,12 +426,12 @@ void loop() {
     delay(2000);
   }
 
-  //Turn the bottom humidifier and fans off if the humidity is above 65% or the sensor fails
+  //Turn the bottom humidifier and fans off if the humidity is above 65%, the sensor fails, or the door is open
   //Else turn the humidifier on
-  if (h2 > 64 || isnan(h2) || (h2) == 0) {
+  if (h2 > 64 || isnan(h2) || (h2) == 0 || doorState == "open") {
     mcp.digitalWrite(humi2, HIGH);
     mcp.digitalWrite(fan2, HIGH);
-    debugln("BOTTOM humidity is g2g!");
+    debugln("BOTTOM humidity is g2g or the door is open!");
     delay(2000);
   } else {
     mcp.digitalWrite(humi2, LOW);
@@ -447,26 +440,34 @@ void loop() {
     delay(2000);
   }
 
+  //Use LCD to tell people to shut the door if they opened it or print the Humidities
+  if (doorState == "open") {
+    display.setTextSize(2);
+    display.setCursor(0, 0);
+    display.print("Shut the");
+    display.setTextSize(2);
+    display.setCursor(0, 35);
+    display.print("Damn Door!");
+  } else {
+    
+    // display top humidity
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.print("Humidity Top: ");
+    display.setTextSize(2);
+    display.setCursor(0, 10);
+    display.print(h1);
+    display.print(" %");
 
-  // display humidity
-  display.setTextSize(1);
-  display.setCursor(0, 0);
-  display.print("Humidity Top: ");
-  display.setTextSize(2);
-  display.setCursor(0, 10);
-  display.print(h1);
-  display.print(" %");
-
-
-  // display humidity
-  display.setTextSize(1);
-  display.setCursor(0, 35);
-  display.print("Humidity Bottom: ");
-  display.setTextSize(2);
-  display.setCursor(0, 45);
-  display.print(h2);
-  display.print(" %");
-
+    // display bottom humidity
+    display.setTextSize(1);
+    display.setCursor(0, 35);
+    display.print("Humidity Bottom: ");
+    display.setTextSize(2);
+    display.setCursor(0, 45);
+    display.print(h2);
+    display.print(" %");
+  }
 
   display.display();
 
