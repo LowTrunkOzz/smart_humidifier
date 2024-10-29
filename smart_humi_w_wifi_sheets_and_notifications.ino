@@ -3,14 +3,10 @@
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
-#include <Hash.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-#include <Adafruit_Sensor.h>
 #include <DHT.h>
 #include <WiFiClientSecure.h>
-#include <Wire.h>
-#include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_MCP23X17.h>
 #include "config.h"
@@ -49,13 +45,13 @@ unsigned long previousMillis = 0;        // will store last time DHT was updated
 unsigned long previousupdateMillis = 0;  //will store the last time Google Sheets was updated
 unsigned long previousTELEMillis = 0;    // will store the last time Telegram was updated
 
-const long interval = 4000;     // Updates DHT readings every 4000 milliseconds
-long updateInterval = 900000;   //Updates Google Sheets every 15 mins
-const long TELEinterval = 500;  // Detect changes that are 500 milliseconds apart for Telegram
+const long interval = 4000;      // Updates DHT readings every 4000 milliseconds
+long updateInterval = 900000;    //Updates Google Sheets every 15 mins
+const long TELEinterval = 1500;  // Detect changes that are 500 milliseconds apart for Telegram
 
 // Initialize Telegram BOT
 #define BOTtoken ""  // your Bot Token (Get from Botfather)
-#define CHAT_ID ""                                       // Use @myidbot to find out the chat ID of an individual or a group
+#define CHAT_ID ""   // Use @myidbot to find out the chat ID of an individual or a group
 
 X509List cert(TELEGRAM_CERTIFICATE_ROOT);
 UniversalTelegramBot bot(BOTtoken, client);
@@ -245,7 +241,7 @@ String processor(const String &var) {
 
 
 void setup() {
-
+  WiFi.setSleepMode(WIFI_NONE_SLEEP);
   // Serial port for debugging purposes
   Serial.begin(115200);
 
@@ -271,11 +267,13 @@ void setup() {
   WiFi.begin(ssid, password);
   debugln("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED) {
-    delay(4000);
-    debugln("Connecting...");
+    debug(".");
+    delay(2000);
   }
 
-  bot.sendMessage(CHAT_ID, "Bot started up", "");
+  // Print ESP8266 Local IP Address
+  debugln(WiFi.localIP());
+
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     debugln(F("SSD1306 allocation failed"));
@@ -286,16 +284,6 @@ void setup() {
   display.clearDisplay();
   display.setTextColor(WHITE);
 
-  // uncomment appropriate mcp.begin
-  if (!mcp.begin_I2C()) {
-    //if (!mcp.begin_SPI(CS_PIN)) {
-    debugln("Error.");
-    while (1)
-      ;
-  }
-
-  // Print ESP8266 Local IP Address
-  debugln(WiFi.localIP());
 
   dht1.begin();
   dht2.begin();
@@ -376,31 +364,6 @@ void setup() {
 
 void loop() {
 
-  //Read the state of the door switch
-  state = digitalRead(reedSwitch);
-
-  //Check if that state has changed and send a notification
-  if (changeState) {
-    unsigned long currentTELEMillis = millis();
-    if (currentTELEMillis - previousTELEMillis >= TELEinterval) {
-      previousTELEMillis = currentTELEMillis;
-      // If a state has occured, invert the current door state
-      state = !state;
-      if (state) {
-        doorState = "closed";
-      } else {
-        doorState = "open";
-      }
-      changeState = false;
-      debugln(state);
-      debugln(doorState);
-
-      //Send notification
-      bot.sendMessage(CHAT_ID, "The door is " + doorState, "");
-    }
-    yield();
-  }
-
 
   unsigned long currentMillis = millis();
   if (currentMillis - previousMillis >= interval) {
@@ -477,6 +440,7 @@ void loop() {
     display.setTextSize(2);
     display.setCursor(0, 35);
     display.print("Damn Door!");
+    yield();
   } else {
 
     // display top humidity
@@ -496,9 +460,37 @@ void loop() {
     display.setCursor(0, 45);
     display.print(h2);
     display.print(" %");
+    yield();
   }
 
   display.display();
+
+
+  //Read the state of the door switch
+  state = digitalRead(reedSwitch);
+
+  //Check if that state has changed and send a notification
+  if (changeState) {
+    unsigned long currentTELEMillis = millis();
+    if (currentTELEMillis - previousTELEMillis >= TELEinterval) {
+      previousTELEMillis = currentTELEMillis;
+      // If a state has occured, invert the current door state
+      state = !state;
+      if (state) {
+        doorState = "closed";
+      } else {
+        doorState = "open";
+      }
+      changeState = false;
+      debugln(state);
+      debugln(doorState);
+
+      //Send notification
+      bot.sendMessage(CHAT_ID, "The door is " + doorState, "");
+    }
+    yield();
+  }
+
 
   unsigned long currentupdateMillis = millis();
   if (currentupdateMillis - previousupdateMillis >= updateInterval) {
