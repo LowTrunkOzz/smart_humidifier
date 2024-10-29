@@ -1,7 +1,7 @@
 /*
 
 Add all of your definitions and declarations here. 
-For the reed switch -> D7 to NC, COM to GRND on board!
+For the reed switch -> D0 to NC, COM to GRND on board!
 
 
 */
@@ -39,7 +39,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 #endif
 
 // Set GPIO for reedswitch
-const int reedSwitch = 13;  //D7 on NodeMCU as I couldn't get this to work with the MCP module
+const int reedSwitch = 16;  // D0 on NodeMCU as I couldn't get this to work with the MCP module
 
 
 // Set number of relays
