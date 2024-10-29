@@ -1,7 +1,7 @@
 /*
 
 Add all of your definitions and declarations here. 
-For the reed switch -> D7 to NO, GRND to COM on board!
+For the reed switch -> D7 to NC, GRND to COM on board!
 
 
 */
