@@ -50,8 +50,8 @@ const long updateInterval = 900000;    //Updates Google Sheets every 15 mins
 const long TELEinterval = 1500;  // Detect changes that are 1500 milliseconds apart for Telegram
 
 // Initialize Telegram BOT
-#define BOTtoken ""  // your Bot Token (Get from Botfather)
-#define CHAT_ID ""   // Use @myidbot to find out the chat ID of an individual or a group
+#define BOTtoken "8174997684:AAGxGfi1qrDue4OVDlsLcFCGoECyspRkjb8"  // your Bot Token (Get from Botfather)
+#define CHAT_ID "8062087937"                                       // Use @myidbot to find out the chat ID of an individual or a group
 
 X509List cert(TELEGRAM_CERTIFICATE_ROOT);
 UniversalTelegramBot bot(BOTtoken, client);
@@ -59,7 +59,7 @@ UniversalTelegramBot bot(BOTtoken, client);
 
 // Runs whenever the reedswitch changes state
 ICACHE_RAM_ATTR void changeDoorStatus() {
-  //debugln(F("State changed"));
+  //debugln("State changed");
   changeState = true;
 }
 
@@ -215,7 +215,7 @@ String relayState(int numRelay) {
 
 // Replaces placeholder with button section in your web page
 String processor(const String &var) {
-  //debugln(F(var));
+  //debugln(var);
   if (var == "BUTTONPLACEHOLDER") {
     String buttons = "";
     for (int i = 1; i <= NUM_RELAYS; i++) {
@@ -251,7 +251,7 @@ void setup() {
   // uncomment appropriate mcp.begin
   if (!mcp.begin_I2C()) {
     //if (!mcp.begin_SPI(CS_PIN)) {
-    debugln(F("Error."));
+    debugln("Error.");
     while (1)
       ;
   }
@@ -265,18 +265,18 @@ void setup() {
 
   // Connect to Wi-Fi
   WiFi.begin(ssid, password);
-  debugln(F("Connecting to WiFi"));
+  debugln("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED) {
     debug(".");
     delay(2000);
   }
 
   // Print ESP8266 Local IP Address
-  debugln(F(WiFi.localIP()));
+  debugln(WiFi.localIP());
 
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    debugln(F("SSD1306 allocation failed"));
+    debugln("SSD1306 allocation failed");
     for (;;)
       ;
   }
@@ -353,7 +353,7 @@ void setup() {
       inputMessage = "No message sent";
       inputParam = "none";
     }
-    debugln(F(inputMessage + inputMessage2));
+    debugln(inputMessage + inputMessage2);
     request->send(200, "text/plain", "OK");
   });
 
@@ -378,16 +378,16 @@ void loop() {
 
     // if temperature read failed, don't change t value
     if (isnan(newT1)) {
-      debugln(F("Failed to read from DHT1 sensor!"));
+      debugln("Failed to read from DHT1 sensor!");
     } else {
       t1 = newT1;
-      debugln(F(t1));
+      debugln(t1);
     }
     if (isnan(newT2)) {
-      debugln(F("Failed to read from DHT2 sensor!"));
+      debugln("Failed to read from DHT2 sensor!");
     } else {
       t2 = newT2;
-      debugln(F(t2));
+      debugln(t2);
     }
 
     // Read Humidity
@@ -396,8 +396,8 @@ void loop() {
 
     h1 = newH1;
     h2 = newH2;
-    debugln(F(h1));
-    debugln(F(h2));
+    debugln(h1);
+    debugln(h2);
 
     // clear display
     display.clearDisplay();
@@ -412,14 +412,14 @@ void loop() {
       previousTELEMillis = currentTELEMillis;
       // If a state has occured, invert the current door state
       state = !state;
-      if (state) {
+      if (state == 0) {
         doorState = "closed";
       } else {
         doorState = "open";
       }
       changeState = false;
-      debugln(F(state));
-      debugln(F(doorState));
+      debugln(state);
+      debugln(doorState);
 
       //Send notification
       bot.sendMessage(CHAT_ID, "The door is " + doorState, "");
@@ -433,12 +433,12 @@ void loop() {
   if (h1 > 64 || isnan(h1) || (h1) == 0 || doorState == "open") {
     mcp.digitalWrite(humi1, HIGH);
     mcp.digitalWrite(fan1, HIGH);
-    debugln(F("TOP humidity is g2g or the door is open!"));
+    debugln("TOP humidity is g2g or the door is open!");
     delay(1000);
   } else {
     mcp.digitalWrite(humi1, LOW);
     mcp.digitalWrite(fan1, LOW);
-    debugln(F("TOP humidity low, beware the mist!"));
+    debugln("TOP humidity low, beware the mist!");
     delay(1000);
   }
 
@@ -447,12 +447,12 @@ void loop() {
   if (h2 > 64 || isnan(h2) || (h2) == 0 || doorState == "open") {
     mcp.digitalWrite(humi2, HIGH);
     mcp.digitalWrite(fan2, HIGH);
-    debugln(F("BOTTOM humidity is g2g or the door is open!"));
+    debugln("BOTTOM humidity is g2g or the door is open!");
     delay(1000);
   } else {
     mcp.digitalWrite(humi2, LOW);
     mcp.digitalWrite(fan2, LOW);
-    debugln(F("BOTTOM humidity low, beware the mist!"));
+    debugln("BOTTOM humidity low, beware the mist!");
     delay(1000);
   }
 
@@ -497,7 +497,7 @@ void loop() {
 
     //----------------------------------------Connect to Google host
     if (!client.connect(host2, httpsPort)) {
-      debugln(F("connection failed"));
+      debugln("connection failed");
       return;
     }
 
@@ -505,18 +505,18 @@ void loop() {
 
     String url = "/macros/s/" + GAS_ID + "/exec?temperature_top=" + (t1) + "&temperature_bottom=" + (t2) + "&humidity_top=" + (h1) + "&humidity_bottom=" + (h2);
     debug("requesting URL: ");
-    debugln(F(url));
+    debugln(url);
 
     client.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host2 + "\r\n" + "User-Agent: BuildFailureDetectorESP32 \r\n" + "Connection: close\r\n\r\n");
 
-    debugln(F("request sent"));
+    debugln("request sent");
     //----------------------------------------
 
     //----------------------------------------Checking whether the data was sent successfully or not
     while (client.connected()) {
       String line = client.readStringUntil('\n');
       if (line == "\r") {
-        debugln(F("headers received"));
+        debugln("headers received");
         break;
       }
     }
