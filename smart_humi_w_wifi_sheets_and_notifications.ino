@@ -55,16 +55,18 @@ const long TELEinterval = 500;  // Detect changes that are 500 milliseconds apar
 
 // Initialize Telegram BOT
 #define BOTtoken ""  // your Bot Token (Get from Botfather)
-#define CHAT_ID ""   // Use @myidbot to find out the chat ID of an individual or a group
+#define CHAT_ID ""                                       // Use @myidbot to find out the chat ID of an individual or a group
 
 X509List cert(TELEGRAM_CERTIFICATE_ROOT);
 UniversalTelegramBot bot(BOTtoken, client);
 
+
 // Runs whenever the reedswitch changes state
 ICACHE_RAM_ATTR void changeDoorStatus() {
-  debugln("State changed");
+  //debugln("State changed");
   changeState = true;
 }
+
 
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
@@ -128,7 +130,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     <sup class="units">&#37</sup>
   </p>
    <p>
-   <i class="fas fa-door-open"></i>
+   <i class="fas fa-door-open"></i>   
    <span class="door-labels">The door is</span>
    <span id="doorState">%DOORSTATE%</span>
   </p>
@@ -303,12 +305,9 @@ void setup() {
   mcp.pinMode(fan2, OUTPUT);
 
   pinMode(reedSwitch, INPUT_PULLUP);
-  state = digitalRead(reedSwitch);
 
   // Set the reedswitch pin as interrupt, assign interrupt function and set CHANGE mode
   attachInterrupt(digitalPinToInterrupt(reedSwitch), changeDoorStatus, CHANGE);
-
-
 
 
   // Set all relays to off when the program starts - if set to Normally Open (NO), the relay is off when you set the relay to HIGH
@@ -377,6 +376,10 @@ void setup() {
 
 void loop() {
 
+  //Read the state of the door switch
+  state = digitalRead(reedSwitch);
+
+  //Check if that state has changed and send a notification
   if (changeState) {
     unsigned long currentTELEMillis = millis();
     if (currentTELEMillis - previousTELEMillis >= TELEinterval) {
@@ -395,6 +398,7 @@ void loop() {
       //Send notification
       bot.sendMessage(CHAT_ID, "The door is " + doorState, "");
     }
+    yield();
   }
 
 
@@ -526,5 +530,6 @@ void loop() {
         break;
       }
     }
+    yield();
   }
 }
