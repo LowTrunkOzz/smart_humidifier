@@ -46,12 +46,12 @@ unsigned long previousupdateMillis = 0;  //will store the last time Google Sheet
 unsigned long previousTELEMillis = 0;    // will store the last time Telegram was updated
 
 const long interval = 4000;      // Updates DHT readings every 4000 milliseconds
-long updateInterval = 900000;    //Updates Google Sheets every 15 mins
-const long TELEinterval = 1500;  // Detect changes that are 500 milliseconds apart for Telegram
+const long updateInterval = 900000;    //Updates Google Sheets every 15 mins
+const long TELEinterval = 1500;  // Detect changes that are 1500 milliseconds apart for Telegram
 
 // Initialize Telegram BOT
 #define BOTtoken ""  // your Bot Token (Get from Botfather)
-#define CHAT_ID ""   // Use @myidbot to find out the chat ID of an individual or a group
+#define CHAT_ID ""                                       // Use @myidbot to find out the chat ID of an individual or a group
 
 X509List cert(TELEGRAM_CERTIFICATE_ROOT);
 UniversalTelegramBot bot(BOTtoken, client);
@@ -400,6 +400,7 @@ void loop() {
 
     // clear display
     display.clearDisplay();
+    yield();
   }
 
 
@@ -410,12 +411,12 @@ void loop() {
     mcp.digitalWrite(humi1, HIGH);
     mcp.digitalWrite(fan1, HIGH);
     debugln("TOP humidity is g2g or the door is open!");
-    delay(2000);
+    delay(1000);
   } else {
     mcp.digitalWrite(humi1, LOW);
     mcp.digitalWrite(fan1, LOW);
     debugln("TOP humidity low, beware the mist!");
-    delay(2000);
+    delay(1000);
   }
 
   //Turn the bottom humidifier and fans off if the humidity is above 65%, the sensor fails, or the door is open
@@ -424,12 +425,12 @@ void loop() {
     mcp.digitalWrite(humi2, HIGH);
     mcp.digitalWrite(fan2, HIGH);
     debugln("BOTTOM humidity is g2g or the door is open!");
-    delay(2000);
+    delay(1000);
   } else {
     mcp.digitalWrite(humi2, LOW);
     mcp.digitalWrite(fan2, LOW);
     debugln("BOTTOM humidity low, beware the mist!");
-    delay(2000);
+    delay(1000);
   }
 
   //Use LCD to tell people to shut the door if they opened it or print the Humidities
@@ -470,8 +471,8 @@ void loop() {
   state = digitalRead(reedSwitch);
 
   //Check if that state has changed and send a notification
+  unsigned long currentTELEMillis = millis();
   if (changeState) {
-    unsigned long currentTELEMillis = millis();
     if (currentTELEMillis - previousTELEMillis >= TELEinterval) {
       previousTELEMillis = currentTELEMillis;
       // If a state has occured, invert the current door state
