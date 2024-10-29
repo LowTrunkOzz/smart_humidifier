@@ -37,7 +37,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 //These lines will turn of serial printing of errors for final code to make it smaller and faster to load
 #if DEBUG == 1
 #define debug(x) Serial.print(x)
-#define debugln(x) Serial.println(x)
+#define debugln(F(x)) Serial.println(F(x))
 #else
 #define debug(x)
 #define debugln(x)
