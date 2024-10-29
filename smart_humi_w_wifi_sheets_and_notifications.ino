@@ -51,7 +51,7 @@ const long TELEinterval = 1500;  // Detect changes that are 1500 milliseconds ap
 
 // Initialize Telegram BOT
 #define BOTtoken ""  // your Bot Token (Get from Botfather)
-#define CHAT_ID ""                                       // Use @myidbot to find out the chat ID of an individual or a group
+#define CHAT_ID ""   // Use @myidbot to find out the chat ID of an individual or a group
 
 X509List cert(TELEGRAM_CERTIFICATE_ROOT);
 UniversalTelegramBot bot(BOTtoken, client);
@@ -293,6 +293,7 @@ void setup() {
   mcp.pinMode(fan2, OUTPUT);
 
   pinMode(reedSwitch, INPUT_PULLUP);
+  state = digitalRead(reedSwitch);
 
   // Set the reedswitch pin as interrupt, assign interrupt function and set CHANGE mode
   attachInterrupt(digitalPinToInterrupt(reedSwitch), changeDoorStatus, CHANGE);
@@ -467,12 +468,9 @@ void loop() {
   display.display();
 
 
-  //Read the state of the door switch
-  state = digitalRead(reedSwitch);
-
   //Check if that state has changed and send a notification
-  unsigned long currentTELEMillis = millis();
   if (changeState) {
+    unsigned long currentTELEMillis = millis();
     if (currentTELEMillis - previousTELEMillis >= TELEinterval) {
       previousTELEMillis = currentTELEMillis;
       // If a state has occured, invert the current door state
