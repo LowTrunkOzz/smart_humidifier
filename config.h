@@ -10,7 +10,7 @@ const char* ssid = "YOUR WIFI SSID";
 const char* password = "YOUR WIFI PASSWORD";
 const char* host2 = "script.google.com";
 const int httpsPort = 443;
-Adafruit_MCP23X17 mcp; //Leave this out if you're not using an mcp module, but you'll need it with the NodeMCU
+Adafruit_MCP23X17 mcp;
 
 WiFiClientSecure client;  //--> Create a WiFiClientSecure object.
 
