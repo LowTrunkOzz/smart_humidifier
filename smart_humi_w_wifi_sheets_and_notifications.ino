@@ -125,11 +125,6 @@ const char index_html[] PROGMEM = R"rawliteral(
     <span id="humidity2">%HUMIDITY2%</span>
     <sup class="units">&#37</sup>
   </p>
-   <p>
-   <i class="fas fa-door-open"></i>   
-   <span class="door-labels">The door is</span>
-   <span id="doorState">%DOORSTATE%</span>
-  </p>
     <h2>Fan Relays</h2>
   %BUTTONPLACEHOLDER%
 <script>function toggleCheckbox(element) {
@@ -183,16 +178,7 @@ setInterval(function ( ) {
   xhttp.send();
 }, 4000 ) ;
 
-setInterval(function ( ) {
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      document.getElementById("doorState").innerHTML = this.responseText;
-    }
-  };
-  xhttp.open("GET", "/doorState", true);
-  xhttp.send();
-}, 4000 ) ;
+
 </script>
 </html>)rawliteral";
 
@@ -232,8 +218,6 @@ String processor(const String &var) {
     return String(t2);
   } else if (var == "HUMIDITY2") {
     return String(h2);
-  } else if (var == "DOORSTATE") {
-    return String(doorState);
   }
 
   return String();
@@ -265,14 +249,14 @@ void setup() {
 
   // Connect to Wi-Fi
   WiFi.begin(ssid, password);
-  debugln("Connecting to WiFi");
+  serial.println("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED) {
-    debug(".");
+    serial.println(".");
     delay(2000);
   }
 
   // Print ESP8266 Local IP Address
-  debugln(WiFi.localIP());
+  serial.println(WiFi.localIP());
 
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
@@ -326,9 +310,7 @@ void setup() {
   server.on("/humidity2", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send_P(200, "text/plain", String(h2).c_str());
   });
-  server.on("/doorState", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send_P(200, "text/plain", String(doorState).c_str());
-  });
+
 
   // Send a GET request to <ESP_IP>/update?relay=<inputMessage>&state=<inputMessage2>
   server.on("/update", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -419,7 +401,7 @@ void loop() {
       }
       changeState = false;
       debugln(state);
-      debugln(doorState);
+      serial.println(doorState);
 
       //Send notification
       bot.sendMessage(CHAT_ID, "The door is " + doorState, "");
