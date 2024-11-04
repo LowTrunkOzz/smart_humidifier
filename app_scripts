@@ -1,0 +1,51 @@
+//Use this in your Google Sheets App Script. Update var sheet_id with your own Sheet ID
+
+function doGet(e) { 
+Logger.log( JSON.stringify(e) );
+var result = 'Ok';
+if (e.parameter == 'undefined') {
+result = 'No Parameters';
+}
+else {
+var sheet_id = ''; // Spreadsheet ID
+var sheet = SpreadsheetApp.openById(sheet_id).getActiveSheet();
+var newRow = sheet.getLastRow() + 1; 
+var rowData = [];
+var Curr_Date = new Date();
+rowData[0] = Curr_Date; 
+var Curr_Time = Utilities.formatDate(Curr_Date, "America/Indianapolis", 'HH:mm:ss');
+rowData[1] = Curr_Time; 
+for (var param in e.parameter) {
+Logger.log('In for loop, param=' + param);
+var value = stripQuotes(e.parameter[param]);
+Logger.log(param + ':' + e.parameter[param]);
+switch (param) {
+case 'humidity_top':
+rowData[2] =value; // Top Humidity in column C
+result = 'Top Humidity Written on Column C'; 
+break;
+case 'humidity_bottom':
+rowData[3] =value; // Bottom Humidity in column D
+result += ' , Bottom Humidity Written on Column D'; 
+break;
+case 'temperature_top':
+rowData[4] =value; //Top Temp in column E
+result += ', Top Temperature Written on Column E';
+break;
+case 'temperature_bottom':
+rowData[5] =value; //Bottom Temp in column F
+result +=  ', Bottom Temperature Written on Column F';
+break;
+default:
+result = "unsupported parameter";
+}
+}
+Logger.log(JSON.stringify(rowData));
+var newRange = sheet.getRange(newRow, 1, 1, rowData.length);
+newRange.setValues([rowData]);
+}
+return ContentService.createTextOutput(result);
+}
+function stripQuotes( value ) {
+return value.replace(/^["']|['"]$/g, "");
+}
