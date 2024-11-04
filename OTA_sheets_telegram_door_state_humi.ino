@@ -2,16 +2,18 @@
 // Import required libraries
 
 #include <Arduino.h>
-#include <ESP8266mDNS.h>
-#include <WiFiUdp.h>
-#include <ArduinoOTA.h>
 #include <ESP8266WiFi.h>
+#include <Hash.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <Adafruit_Sensor.h>
 #include <DHT.h>
 #include <WiFiClientSecure.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_MCP23X17.h>
+#include <ArduinoOTA.h>
 #include "config.h"
 
 #include <UniversalTelegramBot.h>
@@ -27,42 +29,46 @@ float t2 = 0.0;
 float h2 = 0.0;
 
 // Set to true to define Relay as Normally Open (NO)
-#define RELAY_NO true
+#define RELAY_NO    true
 
-// Detects whenever the door changed state
-bool changeState = false;
 
-// Holds reedswitch state (1=opened, 0=close)
-bool state;
-String doorState;
-
-const char *PARAM_INPUT_1 = "relay";
-const char *PARAM_INPUT_2 = "state";
+const char* PARAM_INPUT_1 = "relay";  
+const char* PARAM_INPUT_2 = "state";
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
 
 // Generally, you should use "unsigned long" for variables that hold time
 // The value will quickly become too large for an int to store
-unsigned long previousMillis = 0;        // will store last time DHT was updated
-unsigned long previousupdateMillis = 0;  //will store the last time Google Sheets was updated
-unsigned long previousTELEMillis = 0;    // will store the last time Telegram was updated
+unsigned long previousMillis = 0;    // will store last time DHT was updated
+unsigned long previousupdateMillis = 0; //will store the last time Google Sheets was updated
+unsigned long previousTeleMillis = 0; 
 
-const long interval = 4000;      // Updates DHT readings every 4000 milliseconds
-const long updateInterval = 900000;    //Updates Google Sheets every 15 mins   
-const long TELEinterval = 1500;  // Detect changes that are 1500 milliseconds apart for Telegram
+const long Teleinterval = 1500;
+const long interval = 4000;  // Updates DHT readings every 4000 milliseconds
+//long updateInterval = 30000; //Updates Google Sheets every 30 secs while testing
+long updateInterval = 900000; //Updates Google Sheets every 15 mins
+
+// Detects whenever the door changed state
+bool changeState = false;
+// Holds reedswitch state (1=opened, 0=close)
+bool state;
+String doorState;
 
 // Initialize Telegram BOT
 #define BOTtoken "8174997684:AAGxGfi1qrDue4OVDlsLcFCGoECyspRkjb8"  // your Bot Token (Get from Botfather)
-#define CHAT_ID "8062087937"                                       // Use @myidbot to find out the chat ID of an individual or a group
+// Use @myidbot to find out the chat ID of an individual or a group
+// Also note that you need to click "start" on a bot before it can
+// message you
+#define CHAT_ID "8062087937"
 
 X509List cert(TELEGRAM_CERTIFICATE_ROOT);
+WiFiClientSecure client;
 UniversalTelegramBot bot(BOTtoken, client);
-
 
 // Runs whenever the reedswitch changes state
 ICACHE_RAM_ATTR void changeDoorStatus() {
-  //debugln("State changed");
+  debugln("State changed");
   changeState = true;
 }
 
@@ -79,18 +85,13 @@ const char index_html[] PROGMEM = R"rawliteral(
      margin: 0px auto;
      text-align: center;
     }
-    h2 { font-size: 2.0rem; }
-    p { font-size: 1.0rem; }
+    h2 { font-size: 1.5rem; }
+    p { font-size: 1.5rem; }
     .units { font-size: 1rem; }
     .dht-labels{
       font-size: 1rem;
       vertical-align:middle;
-      padding-bottom: 10px;
-    }
-    .door-labels{
-      font-size: 1.5rem;
-      vertical-align:middle;
-      padding-bottom: 10px;
+      padding-bottom: 12px;
     }
 	.switch {position: relative; display: inline-block; width: 60px; height: 34px} 
     .switch input {display: none}
@@ -133,6 +134,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     <span class="door-labels">The Door is</span>
     <span id="doorState">doorState</span>
   </p>
+
     <h2>Fan Relays</h2>
   %BUTTONPLACEHOLDER%
 <script>function toggleCheckbox(element) {
@@ -143,6 +145,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 }</script>
 </body>
 <script>
+
 setInterval(function ( ) {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
@@ -164,6 +167,7 @@ setInterval(function ( ) {
   xhttp.open("GET", "/humidity1", true);
   xhttp.send();
 }, 4000 ) ;
+
 setInterval(function ( ) {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
@@ -200,17 +204,20 @@ setInterval(function ( ) {
 </script>
 </html>)rawliteral";
 
-String relayState(int numRelay) {
-  if (RELAY_NO) {
-    if (digitalRead(relayGPIOs[numRelay - 1])) {
+String relayState(int numRelay){
+  if(RELAY_NO){
+    if(digitalRead(relayGPIOs[numRelay-1])){
       return "";
-    } else {
+    }
+    else {
       return "checked";
     }
-  } else {
-    if (digitalRead(relayGPIOs[numRelay - 1])) {
+  }
+  else {
+    if(digitalRead(relayGPIOs[numRelay-1])){
       return "checked";
-    } else {
+    }
+    else {
       return "";
     }
   }
@@ -218,36 +225,146 @@ String relayState(int numRelay) {
 }
 
 // Replaces placeholder with button section in your web page
-String processor(const String &var) {
-  //debugln(var);
-  if (var == "BUTTONPLACEHOLDER") {
-    String buttons = "";
-    for (int i = 1; i <= NUM_RELAYS; i++) {
+String processor(const String& var){
+  //Serial.println(var);
+  if(var == "BUTTONPLACEHOLDER"){
+    String buttons ="";
+    for(int i=1; i<=NUM_RELAYS; i++){
       String relayStateValue = relayState(i);
-      buttons += "<h4>Fan #" + String(i) + "</h4><label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this)\" id=\"" + String(i) + "\" " + relayStateValue + "><span class=\"slider\"></span></label>";
+      buttons+= "<h4>Fan #" + String(i) + "</h4><label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this)\" id=\"" + String(i) + "\" "+ relayStateValue +"><span class=\"slider\"></span></label>";
     }
     return buttons;
   }
-  /*
-  if (var == "TEMPERATURE1") {
+/*  if(var == "TEMPERATURE1"){
     return String(t1);
-  } else if (var == "HUMIDITY1") {
+  }
+  else if(var == "HUMIDITY1"){
     return String(h1);
-  } else if (var == "TEMPERATURE2") {
+  }
+  else if(var == "TEMPERATURE2"){
     return String(t2);
-  } else if (var == "HUMIDITY2") {
+  }
+  else if(var == "HUMIDITY2"){
     return String(h2);
   }
-  */
+ */ 
   return String();
-  
 }
 
-
-void setup() {
-  WiFi.setSleepMode(WIFI_NONE_SLEEP);
+void setup(){
+  
   // Serial port for debugging purposes
   Serial.begin(115200);
+
+    // uncomment appropriate mcp.begin
+  if (!mcp.begin_I2C()) {
+  //if (!mcp.begin_SPI(CS_PIN)) {
+    debugln("Error.");
+    while (1);
+  }
+
+//Turn off relay outputs in case there's an issue before readings start:
+  mcp.digitalWrite(humi1,HIGH);
+  mcp.digitalWrite(fan1,HIGH);
+  mcp.digitalWrite(humi2,HIGH);
+  mcp.digitalWrite(fan2,HIGH);
+
+  // Read the current door state
+  pinMode(reedSwitch, INPUT_PULLUP);
+  state = digitalRead(reedSwitch);
+  // Set the reedswitch pin as interrupt, assign interrupt function and set CHANGE mode
+  attachInterrupt(digitalPinToInterrupt(reedSwitch), changeDoorStatus, CHANGE);
+
+    // Connect to Wi-Fi
+  WiFi.begin(ssid, password);
+  debugln("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.print(".");
+  }
+
+  client.setTrustAnchors(&cert); // Add root certificate for api.telegram.org
+
+    if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    debugln(F("SSD1306 allocation failed"));
+    for(;;);
+  }
+  delay(2000);
+  display.clearDisplay();
+  display.setTextColor(WHITE);
+
+  // Print ESP8266 Local IP Address
+  Serial.println(WiFi.localIP());
+
+  // Start server
+  server.begin();
+
+  dht1.begin();
+  dht2.begin();
+  mcp.pinMode(humi1,OUTPUT);
+  mcp.pinMode(humi2,OUTPUT);
+  mcp.pinMode(fan1,OUTPUT);
+  mcp.pinMode(fan2,OUTPUT);  
+
+  // Set all relays to off when the program starts - if set to Normally Open (NO), the relay is off when you set the relay to HIGH
+  for(int i=1; i<=NUM_RELAYS; i++){
+    pinMode(relayGPIOs[i-1], OUTPUT);
+    if(RELAY_NO){
+      digitalWrite(relayGPIOs[i-1], HIGH);
+    }
+    else{
+      digitalWrite(relayGPIOs[i-1], LOW);
+    }
+  }
+
+  // Route for root / web page
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/html", index_html, processor);
+  });
+  server.on("/temperature1", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/plain", String(t1).c_str());
+  });
+  server.on("/humidity1", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/plain", String(h1).c_str());
+  });
+    server.on("/temperature2", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/plain", String(t2).c_str());
+  });
+  server.on("/humidity2", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/plain", String(h2).c_str());
+  });
+  server.on("/doorState", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send_P(200, "text/plain", String(doorState).c_str());
+  });
+
+   // Send a GET request to <ESP_IP>/update?relay=<inputMessage>&state=<inputMessage2>
+  server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    String inputMessage;
+    String inputParam;
+    String inputMessage2;
+    String inputParam2;
+    // GET input1 value on <ESP_IP>/update?relay=<inputMessage>
+    if (request->hasParam(PARAM_INPUT_1) & request->hasParam(PARAM_INPUT_2)) {
+      inputMessage = request->getParam(PARAM_INPUT_1)->value();
+      inputParam = PARAM_INPUT_1;
+      inputMessage2 = request->getParam(PARAM_INPUT_2)->value();
+      inputParam2 = PARAM_INPUT_2;
+      if(RELAY_NO){
+        debug("NO ");
+        digitalWrite(relayGPIOs[inputMessage.toInt()-1], !inputMessage2.toInt());
+      }
+      else{
+        debug("NC ");
+        digitalWrite(relayGPIOs[inputMessage.toInt()-1], inputMessage2.toInt());
+      }
+    }
+    else {
+      inputMessage = "No message sent";
+      inputParam = "none";
+    }
+    debugln(inputMessage + inputMessage2);
+    request->send(200, "text/plain", "OK");
+  });
 
   ArduinoOTA.onStart([]() {
     String type;
@@ -256,8 +373,6 @@ void setup() {
     } else {  // U_FS
       type = "filesystem";
     }
-    
-    
     // NOTE: if updating FS this would be the place to unmount FS using FS.end()
     debugln("Start updating " + type);
   });
@@ -283,227 +398,109 @@ void setup() {
   });
   ArduinoOTA.begin();
 
-
-
-  // Add root certificate for api.telegram.org
-  client.setTrustAnchors(&cert);
-
-  // uncomment appropriate mcp.begin
-  if (!mcp.begin_I2C()) {
-    //if (!mcp.begin_SPI(CS_PIN)) {
-    debugln("Error.");
-    while (1)
-      ;
-  }
-
-  //Turn off relay outputs while waiting for WiFi in case there's an issue before readings start:
-  mcp.digitalWrite(humi1, HIGH);
-  mcp.digitalWrite(fan1, HIGH);
-  mcp.digitalWrite(humi2, HIGH);
-  mcp.digitalWrite(fan2, HIGH);
-
-
-  // Connect to Wi-Fi
-  WiFi.begin(ssid, password);
-  Serial.println("Connecting to WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
-    delay(500);
-  }
-
-  // Print ESP8266 Local IP Address
-  Serial.println(WiFi.localIP());
-
-
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    debugln("SSD1306 allocation failed");
-    for (;;)
-      ;
-  }
-  delay(2000);
-  display.clearDisplay();
-  display.setTextColor(WHITE);
-
-
-  dht1.begin();
-  dht2.begin();
-  mcp.pinMode(humi1, OUTPUT);
-  mcp.pinMode(humi2, OUTPUT);
-  mcp.pinMode(fan1, OUTPUT);
-  mcp.pinMode(fan2, OUTPUT);
-
-  pinMode(reedSwitch, INPUT_PULLUP);
-  state = digitalRead(reedSwitch);
-
-  // Set the reedswitch pin as interrupt, assign interrupt function and set CHANGE mode
-  attachInterrupt(digitalPinToInterrupt(reedSwitch), changeDoorStatus, CHANGE);
-
-
-  // Set all relays to off when the program starts - if set to Normally Open (NO), the relay is off when you set the relay to HIGH
-  for (int i = 1; i <= NUM_RELAYS; i++) {
-    pinMode(relayGPIOs[i - 1], OUTPUT);
-    if (RELAY_NO) {
-      digitalWrite(relayGPIOs[i - 1], HIGH);
-    } else {
-      digitalWrite(relayGPIOs[i - 1], LOW);
-    }
-  }
-
-
-  // Route for root / web page
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send_P(200, "text/html", index_html, processor);
-  });
-  server.on("/temperature1", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send_P(200, "text/plain", String(t1).c_str());
-  });
-  server.on("/humidity1", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send_P(200, "text/plain", String(h1).c_str());
-  });
-  server.on("/temperature2", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send_P(200, "text/plain", String(t2).c_str());
-  });
-  server.on("/humidity2", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send_P(200, "text/plain", String(h2).c_str());
-  });
-  server.on("/doorState", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send_P(200, "text/plain", String(doorState).c_str());
-  });
-
-  // Send a GET request to <ESP_IP>/update?relay=<inputMessage>&state=<inputMessage2>
-  server.on("/update", HTTP_GET, [](AsyncWebServerRequest *request) {
-    String inputMessage;
-    String inputParam;
-    String inputMessage2;
-    String inputParam2;
-    // GET input1 value on <ESP_IP>/update?relay=<inputMessage>
-    if (request->hasParam(PARAM_INPUT_1) & request->hasParam(PARAM_INPUT_2)) {
-      inputMessage = request->getParam(PARAM_INPUT_1)->value();
-      inputParam = PARAM_INPUT_1;
-      inputMessage2 = request->getParam(PARAM_INPUT_2)->value();
-      inputParam2 = PARAM_INPUT_2;
-      if (RELAY_NO) {
-        debug("NO ");
-        digitalWrite(relayGPIOs[inputMessage.toInt() - 1], !inputMessage2.toInt());
-      } else {
-        debug("NC ");
-        digitalWrite(relayGPIOs[inputMessage.toInt() - 1], inputMessage2.toInt());
-      }
-    } else {
-      inputMessage = "No message sent";
-      inputParam = "none";
-    }
-    debugln(inputMessage + inputMessage2);
-    request->send(200, "text/plain", "OK");
-  });
-
-  // Start server
-  server.begin();
-
   client.setInsecure();
+
+  bot.sendMessage(CHAT_ID, "Bot started up", "");
+
 }
-
-void loop() {
-
+ 
+void loop(){  
 
   //OTA Updater
   ArduinoOTA.handle();
 
-
   unsigned long currentMillis = millis();
   if (currentMillis - previousMillis >= interval) {
-
+    
     // save the last time you updated the DHT values
     previousMillis = currentMillis;
 
     // Read temperature as Fahrenheit (isFahrenheit = true)
     float newT1 = dht1.readTemperature(true);
     float newT2 = dht2.readTemperature(true);
-
+    
     // if temperature read failed, don't change t value
     if (isnan(newT1)) {
       debugln("Failed to read from DHT1 sensor!");
-    } else {
+    }
+    else {
       t1 = newT1;
       debugln(t1);
     }
     if (isnan(newT2)) {
       debugln("Failed to read from DHT2 sensor!");
-    } else {
+    }
+    else {
       t2 = newT2;
       debugln(t2);
     }
-
+  
     // Read Humidity
     float newH1 = dht1.readHumidity();
     float newH2 = dht2.readHumidity();
 
-    h1 = newH1;
-    h2 = newH2;
-    debugln(h1);
-    debugln(h2);
+      h1 = newH1;
+      h2 = newH2;
+      debugln(h1);
+      debugln(h2);    
 
-    // clear display
-    display.clearDisplay();
-    
-  }
+      // clear display
+  display.clearDisplay();
 
-
-  //Check if that state has changed and send a notification
-  if (changeState) {
-    unsigned long currentTELEMillis = millis();
-    if (currentTELEMillis - previousTELEMillis >= TELEinterval) {
-      previousTELEMillis = currentTELEMillis;
-      // If a state has occured, invert the current door state
-      state = !state;
-      if (state == 0) {
-        doorState = "closed";
-      } else {
-        doorState = "open";
-      }
-      changeState = false;
-      debugln(state);
-      Serial.println(doorState);
-      yield();
-
-      //Send notification
-      bot.sendMessage(CHAT_ID, "The door is " + doorState, "");
-      
     }
-    
-  }
 
+  if (changeState){
+    unsigned long currentTeleMillis = millis();
+    if(currentTeleMillis - previousTeleMillis >= Teleinterval) {
+      previousTeleMillis = currentTeleMillis;
+      // If a state has occured, invert the current door state   
+        state = !state;
+        if(state) {
+          doorState = "closed";
+        }
+        else{
+          doorState = "open";
+        }
+        changeState = false;
+        debugln(state);
+        Serial.println(doorState);
+        
+        //Send notification
+        bot.sendMessage(CHAT_ID, "The door is " + doorState, "");
+        
+    }  
+  } 
 
-  //Turn the top humidifier and fans off if the humidity is above 65%, the sensor fails, or the door is open
-  //Else turn the humidifier on
-  if (doorState == "open" || h1 > 64 || isnan(h1) || (h1) == 0 ) {
-    mcp.digitalWrite(humi1, HIGH);
-    mcp.digitalWrite(fan1, HIGH);
-    debugln("TOP humidity is g2g or the door is open!");
-    delay(1000);
-  } else {
-    mcp.digitalWrite(humi1, LOW);
-    mcp.digitalWrite(fan1, LOW);
-    debugln("TOP humidity low, beware the mist!");
-    delay(1000);
-  }
+//Turn the top humidifier and fans off if the humidity is above 65% or the sensor fails
+//Else turn the humidifier on
+if(state == 0 || h1>64 || isnan(h1) || (h1) == 0){
+  mcp.digitalWrite(humi1,HIGH);
+  mcp.digitalWrite(fan1,HIGH);
+  debugln("TOP humidity g2g or door open");
+  delay(1000);
+}else{
+  mcp.digitalWrite(humi1,LOW);
+  mcp.digitalWrite(fan1,LOW);
+  debugln("TOP humidity low");
+  delay(1000);
+}
 
-  //Turn the bottom humidifier and fans off if the humidity is above 65%, the sensor fails, or the door is open
-  //Else turn the humidifier on
-  if (doorState == "open" || h2 > 64 || isnan(h2) || (h2) == 0 ) {
-    mcp.digitalWrite(humi2, HIGH);
-    mcp.digitalWrite(fan2, HIGH);
-    debugln("BOTTOM humidity is g2g or the door is open!");
-    delay(1000);
-  } else {
-    mcp.digitalWrite(humi2, LOW);
-    mcp.digitalWrite(fan2, LOW);
-    debugln("BOTTOM humidity low, beware the mist!");
-    delay(1000);
-  }
+//Turn the bottom humidifier and fans off if the humidity is above 65% or the sensor fails
+//Else turn the humidifier on
+if(state == 0 || h2>64 || isnan(h2) || (h2) == 0){
+  mcp.digitalWrite(humi2,HIGH);
+  mcp.digitalWrite(fan2,HIGH);
+  debugln("BOTTOM humidity g2g or door open");
+  delay(1000);
+}else{
+  mcp.digitalWrite(humi2,LOW);
+  mcp.digitalWrite(fan2,LOW);
+  debugln("BOTTOM humidity low");
+  delay(1000);
+}
 
-  //Use LCD to tell people to shut the door if they opened it or print the Humidities
-  if (doorState == "open") {
+  //Use LCD to print the Humidities or tell people to shut the door
+  if (state == 0) {
     display.setTextSize(2);
     display.setCursor(0, 0);
     display.print("Shut the");
@@ -511,8 +508,8 @@ void loop() {
     display.setCursor(0, 35);
     display.print("Damn Door!");
     yield();
-  } else {
-
+}else  
+  {
     // display top humidity
     display.setTextSize(1);
     display.setCursor(0, 0);
@@ -521,7 +518,6 @@ void loop() {
     display.setCursor(0, 10);
     display.print(h1);
     display.print(" %");
-
     // display bottom humidity
     display.setTextSize(1);
     display.setCursor(0, 35);
@@ -530,41 +526,45 @@ void loop() {
     display.setCursor(0, 45);
     display.print(h2);
     display.print(" %");
-    delay(1000);
-  }
-
-  display.display();
-
+    yield();
+} 
+  
+  display.display(); 
 
   unsigned long currentupdateMillis = millis();
   if (currentupdateMillis - previousupdateMillis >= updateInterval) {
 
     previousupdateMillis = currentupdateMillis;  // save the last time you updated the Google Sheets values
+ 
+ //----------------------------------------Connect to Google host
+ if (!client.connect(host2, httpsPort)) {
+ Serial.println("connection failed");
+ return;
+ yield();
+ }
 
-    //----------------------------------------Connect to Google host
-    if (!client.connect(host2, httpsPort)) {
-      debugln("connection failed");
-      return;
-    }
-    //----------------------------------------Processing data and sending data
+ //----------------------------------------Processing data and sending data
 
-    String url = "/macros/s/" + GAS_ID + "/exec?temperature_top=" + (t1) + "&temperature_bottom=" + (t2) + "&humidity_top=" + (h1) + "&humidity_bottom=" + (h2);
-    Serial.print("requesting URL: ");
-    Serial.println(url);
+ String url = "/macros/s/" + GAS_ID + "/exec?temperature_top=" + (t1)  + "&temperature_bottom=" + (t2) + "&humidity_top=" + (h1) + "&humidity_bottom=" + (h2);
+ Serial.print("requesting URL: ");
+ Serial.println(url);
 
-    client.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host2 + "\r\n" + "User-Agent: BuildFailureDetectorESP32 \r\n" + "Connection: close\r\n\r\n");
+ client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+ "Host: " + host2 + "\r\n" +
+ "User-Agent: BuildFailureDetectorESP32 \r\n" +
+ "Connection: close\r\n\r\n");
 
-    Serial.println("request sent");
-    
-    //----------------------------------------Checking whether the data was sent successfully or not
-    while (client.connected()) {
-      String line = client.readStringUntil('\n');
-      if (line == "\r") {
-        Serial.println("headers received");
-        break;
-      }
-    }
-    
+ Serial.println("request sent");
+ //----------------------------------------
+
+ //----------------------------------------Checking whether the data was sent successfully or not
+ while (client.connected()) {
+ String line = client.readStringUntil('\n');
+ if (line == "\r") {
+ Serial.println("headers received");
+ break;
+ }
+ }
+
   }
-Serial.println(ESP.getFreeHeap());
 }
