@@ -6,13 +6,13 @@ For the reed switch -> D7 to NC, COM to GND on board!
 
 */
 const char* host = "iot-web";
-const char* ssid = "TellMyWiFiLoveHer_EXT";
-const char* password = "hahasucka!";
+const char* ssid = "YOUR WIFI SSID";
+const char* password = "YOUR WIFI PASSWORD";
 const char* host2 = "script.google.com";
 const int httpsPort = 443;
 Adafruit_MCP23X17 mcp;
 
-String GAS_ID = "";  //--> spreadsheet script ID
+String GAS_ID = "YOUR GOOGLE SHEETS ID";  //--> spreadsheet script ID
 
 #define SCREEN_WIDTH 128  // OLED display width, in pixels
 #define SCREEN_HEIGHT 64  // OLED display height, in pixels
@@ -41,7 +41,7 @@ int relayGPIOs[NUM_RELAYS] = { 12, 14 };  //12 is D6, 14 is D5
 #define DHTTYPE DHT22  // DHT 22 (AM2302)
 //#define DHTTYPE DHT21 // DHT 21 (AM2301)
 
-//Turn off serial.print/serial.println. 0 = Off, 1 = On
+//Turn off serial.println. 0 = Off, 1 = On
 #define DEBUG 0
 //#define DEBUG 1
 
